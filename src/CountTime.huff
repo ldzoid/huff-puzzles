@@ -14,5 +14,45 @@
 
 
 #define macro MAIN() = takes(0) returns(0) {
+    0x00 calldataload
+    0xe0 shr
 
+    // dispatcher
+    dup1 __FUNC_SIG(getTimeElapsed) eq getTimeElapsed jumpi
+    dup1 __FUNC_SIG(getTimeUntil) eq getTimeUntil jumpi
+
+    0x00 0x00 revert
+
+    getTimeElapsed:
+        0x04 calldataload
+        timestamp // [time, now]
+
+        // check if time > now
+        dup1 dup3 // [time, now, now, time]
+        gt isZero jumpi
+        
+        sub // [now - time]
+        0x00 mstore
+        0x20 0x00 return
+
+        isZero: // return 0
+            0x00 0x00 mstore
+            0x20 0x00 return
+
+    getTimeUntil:
+        timestamp
+        0x04 calldataload // [now, time]
+
+        // check if time < now
+        dup2 dup2 // [now, time, now, time]
+        lt isZero jumpi
+
+        sub // [time - now]
+        0x00 mstore
+        0x20 0x00 return
+
+
+        isZero: // return 0
+            0x00 0x00 mstore
+            0x20 0x00 return
 }

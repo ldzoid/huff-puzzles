@@ -11,6 +11,73 @@
 #define function balanceOf(address) payable returns(uint256)
 #define function withdraw(uint256) payable returns()
 
-#define macro MAIN() = takes(0) returns(0) {
+#define constant BALANCES = FREE_STORAGE_POINTER()
 
+#define macro MAIN() = takes(0) returns(0) {
+    0x00 calldataload
+    0xe0 shr
+
+    // dispacther
+    dup1 __FUNC_SIG(balanceOf) eq balanceOf jumpi
+    dup1 __FUNC_SIG(withdraw) eq withdraw jumpi
+    dup1 0x00 eq receive jumpi
+
+    0x00 0x00 revert
+
+    balanceOf:
+        pop // []
+
+        // calculate slot
+        0x04 calldataload 0x00 mstore // address
+        [BALANCES] 0x20 mstore // slot0
+        0x40 0x00 sha3 // [slot]
+
+        // return balance
+        sload // [balance]
+        0x00 mstore
+        0x20 0x00 return
+
+    withdraw:
+        pop // []
+
+        0x00 0x00 0x00 0x00 // call params
+
+        // calculate slot
+        caller 0x00 mstore // address
+        [BALANCES] 0x20 mstore // slot0
+        0x40 0x00 sha3 dup1 // [slot, slot]
+
+        sload dup1 // [slot, balance, balance]
+        0x04 calldataload dup1 // [slot, balance, balance, toWithdraw, toWithdraw]
+        swap2 swap1 // [slot, balance, toWithdraw, balance, toWithdraw]
+
+        // check if amount > balance
+        gt insufficientBalance jumpi // [slot, balance, toWithdraw]
+
+        // update balance
+        dup1 swap2 sub // [slot, toWithdraw, newBalance]
+        swap1 swap2 sstore // [toWithdraw]
+
+        // withdraw eth
+        caller gas // [0,0,0,0, toWithdraw, caller, gas]
+        call
+
+        0x00 0x00 return
+    
+        insufficientBalance:
+            0x00 0x00 revert
+
+    receive:
+        pop // []
+
+        // calculate slot
+        caller 0x00 mstore // address
+        [BALANCES] 0x20 mstore // slot0
+        0x40 0x00 sha3 // [slot]
+
+        // update balance
+        dup1 sload callvalue // [slot, oldValue, deltaValue]
+        add // [slot, newValue]
+        swap1 sstore
+        0x00 0x00 return
 }

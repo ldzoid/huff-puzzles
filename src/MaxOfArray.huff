@@ -10,5 +10,37 @@
 #define function maxOfArray(uint256[]) payable returns(uint256)
 
 #define macro MAIN() = takes(0) returns(0) {
-   
+    0x00 calldataload
+    0xe0 shr
+
+    // dispatcher
+    __FUNC_SIG(maxOfArray) eq maxOfArray jumpi
+
+    0x00 0x00 revert
+
+    maxOfArray: // []
+        // check if length == 0
+        0x24 calldataload dup1 0x00 eq isEmpty jumpi // [length]
+        0x00 0x00 // [length, max, counter]
+
+        loop:
+            dup1 0x20 mul 0x44 add calldataload // [length, max, counter, element]
+            dup1 dup4 // [length, max, counter, element, element, max]
+            // check if max > number
+            gt skipMaxUpdate jumpi // [length, max, counter, element]
+
+            swap2 // update max
+
+            skipMaxUpdate: // [length, max, counter, element]
+                pop 0x01 add // [length, max, newCounter]
+                // check if length == counter
+                dup3 dup2 eq returnMax jumpi // [length, max, newCounter]
+                loop jump
+
+        returnMax: // [length, max, counter]
+            pop 0x00 mstore pop // []
+            0x20 0x00 return
+
+        isEmpty:
+            0x00 0x00 revert
 }

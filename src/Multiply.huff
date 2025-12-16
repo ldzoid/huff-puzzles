@@ -13,5 +13,32 @@
 
 
 #define macro MAIN() = takes(0) returns(0) {
+    0x00 calldataload
+    0xe0 shr
 
+    // dispatcher
+    __FUNC_SIG(multiply) eq multiply jumpi
+
+    0x00 0x00 revert
+
+    multiply:
+        0x04 calldataload
+        0x24 calldataload // [a, b]
+        mul // [c]
+
+        // check if a*b == 0
+        dup1 0x00 eq noOverflow jumpi
+
+        dup1 // [c, c]
+        0x04 calldataload // [c, c, a]
+        swap1 // [c, a, c]
+        div // [c, c/a]
+        0x24 calldataload // [c, c/a, b]
+        // check if a*b / a == b
+        eq noOverflow jumpi
+        0x00 0x00 revert
+
+        noOverflow:
+            0x00 mstore
+            0x20 0x00 return
 }

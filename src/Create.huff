@@ -13,5 +13,41 @@
 
 
  #define macro MAIN() = takes(0) returns(0) {
-    
+    0x00 calldataload
+    0xe0 shr
+
+    // dispatcher
+    __FUNC_SIG(makeContract) eq makeContract jumpi
+
+    0x00 0x00 revert
+
+    makeContract: // []
+        0x600a8060095f395ff3620caffe5f5260205ff3 0x68 shl
+        0x00 mstore
+        0x13 0x00 0x00 // [size, offset, destOffset]
+        create
+        0x00 mstore
+        0x20 0x00 return
  }
+
+/*
+    init code => 0x600a8060095f395ff3
+
+    600a - PUSH1 10 [10] (deployment code size)
+    80   - DUP1     [10, 10]
+    6009 - PUSH1 9  [10, 10, 9]
+    5f   - PUSH0    [10, 10, 9, 0] (size, offset, destOffset)
+    39   - CODECOPY [10]
+    5f   - PUSH0    [10, 0] (size, offset)
+    f3   - RETURN
+
+    deployment code => 0x620caffe5f5260205ff3
+
+    62 0caffe   - PUSH3 0caffe   [caffe]
+    5f          - PUSH0          [caffe, 0]
+    52          - MSTORE
+    60205f      - PUSH1 32 PUSH0 [32, 0]
+    f3          - RETURN
+
+    code = init + deployment => 0x600a8060095f395ff3620caffe5f5260205ff3
+*/

@@ -13,5 +13,19 @@
 
 
  #define macro MAIN() = takes(0) returns(0) {
-    
+    0x00 calldataload
+    0xe0 shr
+
+    // dispatcher
+    __FUNC_SIG(value) eq value jumpi
+
+    0x00 0x00 revert
+
+    value:
+        0x04 calldataload // [topic]
+        __EVENT_HASH(Value) // [topic, sig]
+        0x24 calldataload 0x00 mstore // store non indexed data in memory
+        0x20 0x00 // [topic, sig, size, offset]
+        log2
+        0x00 0x00 return
  }

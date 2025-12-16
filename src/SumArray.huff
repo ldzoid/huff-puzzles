@@ -12,5 +12,32 @@
 
 
 #define macro MAIN() = takes(0) returns(0) {
+    0x00 calldataload
+    0xe0 shr
 
+    // dispatcher
+    __FUNC_SIG(sumArray) eq sumArray jumpi
+
+    0x00 0x00 revert
+
+    sumArray:
+        0x24 calldataload
+        dup1 iszero returnZero jumpi
+        0x00 0x00 // [length, sum, counter]
+
+        loop:
+            dup1 0x20 mul 0x44 add calldataload // [length, sum, counter, element]
+            dup3 add swap2 pop // add sum [length, newSum, counter]
+            0x01 add // increment counter [length, newSum, newCounter]
+            dup3 dup2 lt loop jumpi // again if counter less than length
+        
+        swap1
+        0x00 mstore pop pop
+        0x20 0x00 return
+
+        returnZero:
+            pop
+            0x00 0x00 mstore
+            0x20 0x00 return
 }
+

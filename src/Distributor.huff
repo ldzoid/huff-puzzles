@@ -14,5 +14,38 @@
 
 
  #define macro MAIN() = takes(0) returns(0) {
-   
+    0x00 calldataload
+    0xe0 shr
+
+    // dispatcher
+    __FUNC_SIG(distribute) eq distribute jumpi
+
+    0x00 0x00 revert
+
+    distribute:
+        // prepare variables for the loop
+        0x24 calldataload dup1 dup1 // [length, length, length]
+        // check if length == 0
+        0x00 eq lengthZero jumpi // [length, length]
+        callvalue div 0x00 // [length, amount, counter]
+
+        loop: // [length, amount, counter]
+            dup1 0x20 mul 0x44 add calldataload // [length, amount, counter, recipient]
+            0x00 0x00 0x00 0x00 // [length, amount, counter, recipient, 0, 0, 0, 0]
+            swap4 dup7 // [length, amount, counter, 0, 0, 0, 0, recipient, amount]
+            swap1 0x00 // [length, amount, counter, 0, 0, 0, 0, amount, recipient, gas]
+            call // [length, amount, counter, success]
+
+            // increment counter
+            pop 0x01 add dup1 // [length, amount, newCounter, newCounter]
+
+            // check if counter == length
+            dup4 eq done jumpi
+            loop jump
+
+            done:
+                0x00 0x00 return
+
+        lengthZero:
+            0x00 0x00 revert
  }
